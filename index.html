@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#563083" />
   <meta name="description" content="Domain Manager – organize your .pi domain listings." />
   <title>Domain Manager — Pi Domain Organizer</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js" defer></script>
   <style>
     :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#222035; background:#f7f5fb; }
     *{box-sizing:border-box} body{margin:0} header{padding:26px 20px 22px;background:linear-gradient(120deg,#4a2476,#7549a9);color:white} .wrap{max-width:740px;margin:auto} h1{margin:0;font-size:1.8rem} h2{font-size:1.2rem;margin:0 0 14px} .sub{opacity:.93;margin:7px 0 0} main{padding:22px 16px 90px} .card{background:white;border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 3px 18px #32215312} .tabs{display:flex;gap:8px;margin-bottom:18px}.tab{flex:1;background:#ede5f7;border:0;padding:12px 8px;border-radius:12px;color:#523078;font-weight:700}.tab[aria-selected=true]{background:#59328b;color:white} label{display:block;font-size:.91rem;font-weight:650;margin:13px 0 7px} input,textarea,select{width:100%;padding:12px 13px;border:1px solid #ccc2d7;border-radius:10px;font:inherit;background:white;color:#222035} textarea{min-height:82px;resize:vertical} button{cursor:pointer;font:inherit}.primary{background:#653a96;color:white;border:0;border-radius:10px;padding:13px 18px;font-weight:700;margin-top:16px;width:100%}.secondary{background:#f1eaf8;color:#542b82;border:0;border-radius:9px;padding:8px 12px;font-weight:650}.danger{color:#9e294b;background:#fbe8ef}.hint{font-size:.86rem;color:#6e687c;line-height:1.45}.notice{background:#fff7e5;border:1px solid #f2d69a;border-radius:12px;padding:13px 14px;font-size:.89rem;margin-bottom:17px}.item{border:1px solid #e3ddeb;border-radius:12px;padding:15px;margin:11px 0}.item h3{margin:0 0 5px;overflow-wrap:anywhere}.item p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}.tag{display:inline-block;background:#ede6f7;color:#603894;border-radius:99px;padding:4px 9px;font-size:.77rem;margin:7px 0}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.empty{padding:24px 0;text-align:center;color:#776d87}.hidden{display:none} a{color:#663ea1;overflow-wrap:anywhere} footer{text-align:center;color:#7e758b;padding:24px 10px;font-size:.8rem}
@@ -14,7 +15,14 @@
 <body>
 <header><div class="wrap"><h1>◈ Domain Manager</h1><p class="sub">Organize and showcase your .pi domain ideas</p></div></header>
 <main class="wrap">
-  <div class="notice"><strong>Prototype version:</strong> Listings are saved only in this browser on this device. This app does not authenticate Pi accounts, verify domain ownership, or publish listings to other users yet. Listing a domain here does not claim it on Pi Network.</div>
+  <div class="notice"><strong>Prototype version:</strong> Domain listings are saved only in this browser on this device, even after Pi sign-in. This site does not verify .pi domain ownership or share listings between devices. Adding a domain here does not claim it on Pi Network.</div>
+  <div class="card" aria-label="Pi account sign-in">
+    <h2>Pi Account</h2>
+    <p id="pi-status" class="hint" role="status">Not signed in. Open this site in Pi Browser to try Pi Sign-In.</p>
+    <button class="primary" id="pi-login" type="button">Sign in with Pi</button>
+    <button class="secondary hidden" id="pi-logout" type="button">Clear sign-in display</button>
+    <p class="hint">Pi sign-in is a preliminary client-side demonstration. A server must verify the access token with Pi Network before accounts or user activity can be trusted. No access token is saved by this site.</p>
+  </div>
   <nav class="tabs" aria-label="Sections">
     <button class="tab" data-tab="home" aria-selected="true">Home</button>
     <button class="tab" data-tab="domains" aria-selected="false">My Domains</button>
@@ -38,6 +46,33 @@
 (()=>{
 'use strict';
 const KEY='domain-manager-prototype-v1';
+let piDisplayUser=null;
+const status=document.getElementById('pi-status');
+const loginButton=document.getElementById('pi-login');
+const logoutButton=document.getElementById('pi-logout');
+loginButton.addEventListener('click',async()=>{
+  loginButton.disabled=true;
+  status.textContent='Opening Pi authentication…';
+  try {
+    if(!window.Pi || typeof window.Pi.authenticate!=='function') throw new Error('Pi SDK unavailable. Open this page in Pi Browser.');
+    window.Pi.init({version:'2.0',sandbox:false});
+    const auth=await window.Pi.authenticate(['username'],()=>{});
+    if(!auth || !auth.user || !auth.user.username) throw new Error('Pi did not return a username.');
+    piDisplayUser=auth.user.username;
+    status.textContent='Pi username: '+piDisplayUser+' (client-side display only; not server-verified)';
+    loginButton.classList.add('hidden');
+    logoutButton.classList.remove('hidden');
+    // Never store access tokens in localStorage or a public GitHub repository.
+  }catch(error){
+    status.textContent='Pi sign-in was not completed: '+(error&&error.message?error.message:'Please try again in Pi Browser.');
+    loginButton.disabled=false;
+  }
+});
+logoutButton.addEventListener('click',()=>{
+  piDisplayUser=null;
+  status.textContent='Not signed in. Open this site in Pi Browser to try Pi Sign-In.';
+  logoutButton.classList.add('hidden');loginButton.classList.remove('hidden');loginButton.disabled=false;
+});
 let entries=[];
 try{const saved=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(saved))entries=saved.filter(x=>x&&typeof x.name==='string');}catch{}
 const $=id=>document.getElementById(id);
