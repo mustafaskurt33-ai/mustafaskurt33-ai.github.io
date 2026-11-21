@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#563083" />
+  <meta name="description" content="Domain Manager – organize your .pi domain listings." />
+  <title>Domain Manager — Pi Domain Organizer</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#222035; background:#f7f5fb; }
+    *{box-sizing:border-box} body{margin:0} header{padding:26px 20px 22px;background:linear-gradient(120deg,#4a2476,#7549a9);color:white} .wrap{max-width:740px;margin:auto} h1{margin:0;font-size:1.8rem} h2{font-size:1.2rem;margin:0 0 14px} .sub{opacity:.93;margin:7px 0 0} main{padding:22px 16px 90px} .card{background:white;border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 3px 18px #32215312} .tabs{display:flex;gap:8px;margin-bottom:18px}.tab{flex:1;background:#ede5f7;border:0;padding:12px 8px;border-radius:12px;color:#523078;font-weight:700}.tab[aria-selected=true]{background:#59328b;color:white} label{display:block;font-size:.91rem;font-weight:650;margin:13px 0 7px} input,textarea,select{width:100%;padding:12px 13px;border:1px solid #ccc2d7;border-radius:10px;font:inherit;background:white;color:#222035} textarea{min-height:82px;resize:vertical} button{cursor:pointer;font:inherit}.primary{background:#653a96;color:white;border:0;border-radius:10px;padding:13px 18px;font-weight:700;margin-top:16px;width:100%}.secondary{background:#f1eaf8;color:#542b82;border:0;border-radius:9px;padding:8px 12px;font-weight:650}.danger{color:#9e294b;background:#fbe8ef}.hint{font-size:.86rem;color:#6e687c;line-height:1.45}.notice{background:#fff7e5;border:1px solid #f2d69a;border-radius:12px;padding:13px 14px;font-size:.89rem;margin-bottom:17px}.item{border:1px solid #e3ddeb;border-radius:12px;padding:15px;margin:11px 0}.item h3{margin:0 0 5px;overflow-wrap:anywhere}.item p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}.tag{display:inline-block;background:#ede6f7;color:#603894;border-radius:99px;padding:4px 9px;font-size:.77rem;margin:7px 0}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.empty{padding:24px 0;text-align:center;color:#776d87}.hidden{display:none} a{color:#663ea1;overflow-wrap:anywhere} footer{text-align:center;color:#7e758b;padding:24px 10px;font-size:.8rem}
+  </style>
+</head>
+<body>
+<header><div class="wrap"><h1>◈ Domain Manager</h1><p class="sub">Organize and showcase your .pi domain ideas</p></div></header>
+<main class="wrap">
+  <div class="notice"><strong>Prototype version:</strong> Listings are saved only in this browser on this device. This app does not authenticate Pi accounts, verify domain ownership, or publish listings to other users yet. Listing a domain here does not claim it on Pi Network.</div>
+  <nav class="tabs" aria-label="Sections">
+    <button class="tab" data-tab="home" aria-selected="true">Home</button>
+    <button class="tab" data-tab="domains" aria-selected="false">My Domains</button>
+    <button class="tab" data-tab="explore" aria-selected="false">Explore</button>
+  </nav>
+  <section id="home" class="card"><h2>Welcome to Domain Manager</h2><p>Keep track of your <strong>.pi</strong> domains and share information about each project once public publishing is available.</p><p class="hint">Start by adding a domain in <strong>My Domains</strong>. You can review your saved listings in <strong>Explore</strong> on this device.</p><button class="primary" id="start">Add my first domain</button></section>
+  <section id="domains" class="hidden">
+    <div class="card"><h2>Add a .pi domain</h2><form id="domain-form">
+      <label for="name">Domain name</label><input id="name" required maxlength="70" placeholder="e.g. navan.pi" autocapitalize="none" spellcheck="false" />
+      <label for="category">Category</label><select id="category"><option>Business</option><option>Technology</option><option>Education</option><option>Community</option><option>Other</option></select>
+      <label for="description">Description</label><textarea id="description" maxlength="500" placeholder="Describe the project or planned use"></textarea>
+      <label for="website">Website URL (optional)</label><input id="website" type="url" placeholder="https://example.com" />
+      <button class="primary" type="submit">Save domain</button>
+    </form><p id="feedback" class="hint" role="status"></p></div>
+    <div class="card"><h2>Saved domains <span id="count">(0)</span></h2><div id="mine"></div></div>
+  </section>
+  <section id="explore" class="hidden"><div class="card"><h2>Explore saved listings</h2><p class="hint">This early version shows only the domains saved in your current browser. A shared public directory requires a secure backend and user login.</p><label for="search">Search domains</label><input id="search" type="search" placeholder="Search names and descriptions" /><div id="results"></div></div></section>
+  <footer>Independent prototype · Not affiliated with or endorsed by Pi Network</footer>
+</main>
+<script>
+(()=>{
+'use strict';
+const KEY='domain-manager-prototype-v1';
+let entries=[];
+try{const saved=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(saved))entries=saved.filter(x=>x&&typeof x.name==='string');}catch{}
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(entries));
+const elt=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e};
+function show(id){for(const button of document.querySelectorAll('[data-tab]')){const selected=button.dataset.tab===id;button.setAttribute('aria-selected',String(selected));$(button.dataset.tab).classList.toggle('hidden',!selected);}render();}
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.tab)));
+$('start').addEventListener('click',()=>show('domains'));
+function card(entry, removable){const div=elt('article','item'); const row=elt('div','row');const title=elt('h3','',entry.name);row.append(title);if(removable){const del=elt('button','secondary danger','Delete');del.type='button';del.addEventListener('click',()=>{if(confirm('Delete '+entry.name+' from this browser?')){entries=entries.filter(e=>e.id!==entry.id);save();render();}});row.append(del);}div.append(row,elt('span','tag','Self-declared · not verified'),elt('p','',entry.description||'No description added.'),elt('p','hint',entry.category+' · Added '+new Date(entry.createdAt).toLocaleDateString()));if(entry.website){try{const url=new URL(entry.website);if(url.protocol==='https:'||url.protocol==='http:'){const a=elt('a','','Visit website ↗');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer nofollow';div.append(a)}}catch{}}return div;}
+function fill(target,list,removable){target.replaceChildren();if(!list.length){target.append(elt('p','empty','No domains found. Add your first domain!'));return;}list.forEach(entry=>target.append(card(entry,removable)));}
+function render(){const sorted=[...entries].sort((a,b)=>b.createdAt-a.createdAt);$('count').textContent='('+sorted.length+')';fill($('mine'),sorted,true);const q=$('search').value.toLowerCase().trim();fill($('results'),sorted.filter(e=>[e.name,e.category,e.description].join(' ').toLowerCase().includes(q)),false);}
+$('search').addEventListener('input',render);
+$('domain-form').addEventListener('submit',event=>{event.preventDefault();const name=$('name').value.trim().toLowerCase();const web=$('website').value.trim();if(!/^[a-z0-9][a-z0-9-]{0,62}\.pi$/.test(name)||name.includes('--')){$('feedback').textContent='Please enter a valid name such as navan.pi (letters, numbers, hyphens).';return;}if(entries.some(e=>e.name===name)){$('feedback').textContent='This domain is already in your list.';return;}entries.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),name,category:$('category').value,description:$('description').value.trim(),website:web,createdAt:Date.now()});save();$('domain-form').reset();$('feedback').textContent=name+' saved on this device.';render();});
+render();
+})();
+</script>
+</body>
+</html>
